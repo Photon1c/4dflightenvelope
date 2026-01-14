@@ -56,8 +56,10 @@ export class MarketJet {
 
             this.trailGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
             this.trailGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-            this.trailGeometry.attributes.position.needsUpdate = true;
-            this.trailGeometry.attributes.color.needsUpdate = true;
+            const posAttr = this.trailGeometry.attributes.position;
+            const colorAttr = this.trailGeometry.attributes.color;
+            if (posAttr) posAttr.needsUpdate = true;
+            if (colorAttr) colorAttr.needsUpdate = true;
             this.trailGeometry.computeBoundingSphere();
         }
     }
