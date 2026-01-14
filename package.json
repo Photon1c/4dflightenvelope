@@ -4,6 +4,7 @@
   },
   "name": "4dflightapp",
   "version": "1.0.0",
+  "type": "module",
   "main": "index.js",
   "devDependencies": {
     "@types/three": "^0.182.0",
