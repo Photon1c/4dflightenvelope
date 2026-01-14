@@ -44,13 +44,6 @@ class App {
 
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = true;
-        this.controls.enableKeys = true;
-        this.controls.keys = {
-            LEFT: 'ArrowLeft',
-            UP: 'ArrowUp',
-            RIGHT: 'ArrowRight',
-            BOTTOM: 'ArrowDown'
-        };
         
         const ambient = new THREE.AmbientLight(0xffffff, 0.8);
         this.scene.add(ambient);
@@ -230,7 +223,23 @@ class App {
         const dt = (time - this.lastTime) / 1000;
         this.lastTime = time;
 
-        // OrbitControls handles arrow keys natively via enableKeys
+        // Manual camera rotation with arrow keys (using spherical coordinates)
+        const rotSpeed = 1.5 * dt;
+        if (keys['ArrowLeft'] || keys['ArrowRight'] || keys['ArrowUp'] || keys['ArrowDown']) {
+            const target = this.controls.target;
+            const offset = new THREE.Vector3().subVectors(this.camera.position, target);
+            const spherical = new THREE.Spherical();
+            spherical.setFromVector3(offset);
+            
+            if (keys['ArrowLeft']) spherical.theta -= rotSpeed;
+            if (keys['ArrowRight']) spherical.theta += rotSpeed;
+            if (keys['ArrowUp']) spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi - rotSpeed));
+            if (keys['ArrowDown']) spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi + rotSpeed));
+            
+            offset.setFromSpherical(spherical);
+            this.camera.position.copy(target).add(offset);
+            this.camera.lookAt(target);
+        }
         this.controls.update();
 
         if (this.isPilotMode) {
