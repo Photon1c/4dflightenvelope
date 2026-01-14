@@ -44,6 +44,13 @@ class App {
 
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = true;
+        this.controls.enableKeys = true;
+        this.controls.keys = {
+            LEFT: 'ArrowLeft',
+            UP: 'ArrowUp',
+            RIGHT: 'ArrowRight',
+            BOTTOM: 'ArrowDown'
+        };
         
         const ambient = new THREE.AmbientLight(0xffffff, 0.8);
         this.scene.add(ambient);
@@ -223,11 +230,7 @@ class App {
         const dt = (time - this.lastTime) / 1000;
         this.lastTime = time;
 
-        const rotSpeed = 1.0 * dt;
-        if (keys['ArrowLeft']) this.controls.rotateLeft(rotSpeed);
-        if (keys['ArrowRight']) this.controls.rotateLeft(-rotSpeed);
-        if (keys['ArrowUp']) this.controls.rotateUp(rotSpeed);
-        if (keys['ArrowDown']) this.controls.rotateUp(-rotSpeed);
+        // OrbitControls handles arrow keys natively via enableKeys
         this.controls.update();
 
         if (this.isPilotMode) {
