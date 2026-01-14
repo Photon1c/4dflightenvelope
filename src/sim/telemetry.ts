@@ -16,14 +16,16 @@ export function getIVHV(frame: TelemetryFrame): number {
 
 export function findNextFlag(frames: TelemetryFrame[], currentIndex: number): number {
     for (let i = currentIndex + 1; i < frames.length; i++) {
-        if (frames[i].flags.length > 0) return i;
+        const frame = frames[i];
+        if (frame && frame.flags.length > 0) return i;
     }
     return currentIndex;
 }
 
 export function findPrevFlag(frames: TelemetryFrame[], currentIndex: number): number {
     for (let i = currentIndex - 1; i >= 0; i--) {
-        if (frames[i].flags.length > 0) return i;
+        const frame = frames[i];
+        if (frame && frame.flags.length > 0) return i;
     }
     return currentIndex;
 }
