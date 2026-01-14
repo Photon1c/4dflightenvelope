@@ -77,7 +77,7 @@ export class FlightEnvelope {
         this.group.add(sprite);
     }
 
-    private addThresholdPlane(x: number, color: number, w: number, h: number, d: number) {
+    private addThresholdPlane(x: number, color: number, _w: number, h: number, d: number) {
         const geom = new THREE.PlaneGeometry(h + 10, d + 10);
         const mat = new THREE.MeshStandardMaterial({
             color: color,
