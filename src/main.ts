@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { loadJsonl, parseJsonlFile } from './io/loadJsonl';
 import type { TelemetryFrame } from './io/loadJsonl';
 import { FlightEnvelope } from './scene/envelope';
@@ -38,7 +38,6 @@ class App {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         
-        // Append to #app instead of body for better CSS control
         const container = document.getElementById('app');
         if (container) container.appendChild(this.renderer.domElement);
         else document.body.appendChild(this.renderer.domElement);
@@ -46,7 +45,6 @@ class App {
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = true;
         
-        // Lighting - Boosted for visibility
         const ambient = new THREE.AmbientLight(0xffffff, 0.8);
         this.scene.add(ambient);
         
@@ -54,7 +52,6 @@ class App {
         sun.position.set(5, 10, 7.5);
         this.scene.add(sun);
 
-        // Helper
         this.scene.add(new THREE.AxesHelper(5));
 
         this.jet = new MarketJet();
@@ -66,17 +63,14 @@ class App {
         this.setupEvents();
         this.animate();
 
-        // Load default telemetry if available
         this.initDefault();
     }
 
     initDefault() {
-        // Add a persistent background grid so the scene isn't black
         const grid = new THREE.GridHelper(100, 100, 0x00ff88, 0x002211);
         grid.position.y = -2;
         this.scene.add(grid);
 
-        // Add an intro cue (artistic wireframe)
         const introGeo = new THREE.IcosahedronGeometry(2, 1);
         const introMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, wireframe: true, transparent: true, opacity: 0.3 });
         const introMesh = new THREE.Mesh(introGeo, introMat);
@@ -102,9 +96,11 @@ class App {
         this.scene.add(this.envelope.group);
         
         this.jet.resetTrail();
-        this.pilotPos = { x: frames[0].x, y: frames[0].y, z: frames[0].z };
+        const firstFrame = frames[0];
+        if (firstFrame) {
+            this.pilotPos = { x: firstFrame.x, y: firstFrame.y, z: firstFrame.z };
+        }
 
-        // Center camera on envelope
         const center = new THREE.Vector3();
         const box = new THREE.Box3().setFromObject(this.envelope.group);
         box.getCenter(center);
@@ -125,7 +121,6 @@ class App {
             this.renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // HUD interactions
         document.addEventListener('click', (e) => {
             const target = e.target as HTMLElement;
             if (target.id === 'play-pause') {
@@ -143,21 +138,23 @@ class App {
                 const spotInput = document.getElementById('param-spot') as HTMLInputElement;
                 const ivInput = document.getElementById('param-iv') as HTMLInputElement;
                 
-                const steps = parseInt(framesInput.value);
-                const startSpot = parseFloat(spotInput.value);
-                const startIv = parseFloat(ivInput.value);
+                if (framesInput && spotInput && ivInput) {
+                    const steps = parseInt(framesInput.value);
+                    const startSpot = parseFloat(spotInput.value);
+                    const startIv = parseFloat(ivInput.value);
 
-                const frames = generateSyntheticPath({
-                    steps,
-                    startSpot,
-                    startIv,
-                    targetIv: startIv, // Simple drift base
-                    atr: 2.8,
-                    flip: 692.5,
-                    putWall: 680.0,
-                    callWall: 700.0
-                });
-                this.setFrames(frames);
+                    const frames = generateSyntheticPath({
+                        steps,
+                        startSpot,
+                        startIv,
+                        targetIv: startIv,
+                        atr: 2.8,
+                        flip: 692.5,
+                        putWall: 680.0,
+                        callWall: 700.0
+                    });
+                    this.setFrames(frames);
+                }
             }
         });
 
@@ -182,12 +179,11 @@ class App {
             }
         });
 
-        // File upload
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = '.jsonl';
-        input.id = 'file-upload-input'; // Add ID
-        input.style.display = 'none'; // Hide by default
+        input.id = 'file-upload-input';
+        input.style.display = 'none';
         document.body.appendChild(input);
         input.onchange = async (e: any) => {
             const file = e.target.files[0];
@@ -197,10 +193,6 @@ class App {
             }
         };
 
-        // Add a button or instruction to trigger file upload if needed, 
-        // but for now we have the strategy select and the manual upload is hidden.
-
-        // Keyboard for Pilot Mode & Manual
         const keys: Record<string, boolean> = {};
         window.addEventListener('keydown', (e) => {
             keys[e.code] = true;
@@ -231,7 +223,6 @@ class App {
         const dt = (time - this.lastTime) / 1000;
         this.lastTime = time;
 
-        // Camera rotation with arrows
         const rotSpeed = 1.0 * dt;
         if (keys['ArrowLeft']) this.controls.rotateLeft(rotSpeed);
         if (keys['ArrowRight']) this.controls.rotateLeft(-rotSpeed);
@@ -239,7 +230,6 @@ class App {
         if (keys['ArrowDown']) this.controls.rotateUp(-rotSpeed);
         this.controls.update();
 
-        // Pilot movement
         if (this.isPilotMode) {
             const step = 5.0 * dt;
             if (keys['KeyW']) this.pilotPos.z -= step;
@@ -258,28 +248,28 @@ class App {
 
         if (this.frames.length > 0) {
             if (this.isPlaying) {
-                this.currentIndex += dt * 30 * this.playbackSpeed; // Assume 30fps base
+                this.currentIndex += dt * 30 * this.playbackSpeed;
                 if (this.currentIndex >= this.frames.length) {
                     this.currentIndex = 0;
                     this.jet.resetTrail();
                 }
             }
 
-            const frame = this.frames[Math.floor(this.currentIndex)];
+            const frameIndex = Math.floor(this.currentIndex);
+            const frame = this.frames[frameIndex];
             
-            // In Pilot mode, we compare current pilotPos to frame
-            this.jet.update(frame, this.isPilotMode ? this.pilotPos : undefined);
-            this.hud.update(frame, Math.floor(this.currentIndex), this.frames.length - 1, this.isPilotMode, this.pilotPos);
+            if (frame) {
+                this.jet.update(frame, this.isPilotMode ? this.pilotPos : undefined);
+                this.hud.update(frame, frameIndex, this.frames.length - 1, this.isPilotMode, this.pilotPos);
 
-            // Follow camera logic
-            if (this.isPlaying && !this.isPilotMode) {
-                const offset = new THREE.Vector3(0, 2, 5);
-                const targetPos = this.jet.mesh.position.clone().add(offset);
-                
-                // Only lerp if we aren't manually rotating with arrows
-                if (!keys['ArrowLeft'] && !keys['ArrowRight'] && !keys['ArrowUp'] && !keys['ArrowDown']) {
-                    this.camera.position.lerp(targetPos, 0.1);
-                    this.controls.target.lerp(this.jet.mesh.position, 0.1);
+                if (this.isPlaying && !this.isPilotMode) {
+                    const offset = new THREE.Vector3(0, 2, 5);
+                    const targetPos = this.jet.mesh.position.clone().add(offset);
+                    
+                    if (!keys['ArrowLeft'] && !keys['ArrowRight'] && !keys['ArrowUp'] && !keys['ArrowDown']) {
+                        this.camera.position.lerp(targetPos, 0.1);
+                        this.controls.target.lerp(this.jet.mesh.position, 0.1);
+                    }
                 }
             }
             this.controls.update();
