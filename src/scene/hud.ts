@@ -65,6 +65,7 @@ export class HUD {
                             <option value="telemetry.jsonl">Default (Breakout)</option>
                             <option value="mean_revert_test.jsonl">Mean Reversion</option>
                             <option value="false_breakout_test.jsonl">False Breakout</option>
+                            <option value="__custom__">Custom Scenario</option>
                         </select>
                     </div>
                     <div style="display: flex; gap: 5px; align-items: center;">
@@ -74,6 +75,32 @@ export class HUD {
                     <label style="cursor: pointer; display: flex; align-items: center; gap: 5px; color: #ffff00;">
                         <input type="checkbox" id="pilot-mode"> PILOT MODE
                     </label>
+                    <button id="btn-export-pilot" style="background: #002211; color: #00ff88; border: 1px solid #00ff88; padding: 2px 8px; cursor: pointer; display: none;">EXPORT PILOT</button>
+                </div>
+                <div id="custom-scenario-params" style="display: none; flex-direction: column; gap: 8px; margin-top: 8px; padding: 8px; background: rgba(0,40,0,0.7); border: 1px solid #004422; border-radius: 3px; font-size: 0.75em; color: #ffffff;">
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; align-items: center;">
+                        <div style="color: #ffffff;">SPOT: <input type="number" id="custom-spot" value="694" step="0.01" style="width: 60px; background: #000; color: #0f8; border: 1px solid #042; padding: 2px;"></div>
+                        <div style="color: #ffffff;">FLIP: <input type="number" id="custom-flip" value="692.5" step="0.01" style="width: 60px; background: #000; color: #0f8; border: 1px solid #042; padding: 2px;"></div>
+                        <div style="color: #ffffff;">PUT WALL: <input type="number" id="custom-putwall" value="680" step="0.01" style="width: 60px; background: #000; color: #0f8; border: 1px solid #042; padding: 2px;"></div>
+                        <div style="color: #ffffff;">CALL WALL: <input type="number" id="custom-callwall" value="700" step="0.01" style="width: 60px; background: #000; color: #0f8; border: 1px solid #042; padding: 2px;"></div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; align-items: center;">
+                        <div style="color: #ffffff;">IV (%): <input type="number" id="custom-iv" value="13.69" step="0.01" style="width: 60px; background: #000; color: #0f8; border: 1px solid #042; padding: 2px;"></div>
+                        <div style="color: #ffffff;">HV (%): <input type="number" id="custom-hv" value="7.79" step="0.01" style="width: 60px; background: #000; color: #0f8; border: 1px solid #042; padding: 2px;"></div>
+                        <div style="color: #ffffff;">ATR: <input type="number" id="custom-atr" value="2.8" step="0.01" style="width: 60px; background: #000; color: #0f8; border: 1px solid #042; padding: 2px;"></div>
+                        <div style="color: #ffffff;">FRAMES: <input type="number" id="custom-framecount" value="450" step="1" style="width: 60px; background: #000; color: #0f8; border: 1px solid #042; padding: 2px;"></div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; align-items: center;">
+                        <div style="color: #ffffff;">SCENARIO: <select id="custom-scenario-type" style="width: 120px; background: #002211; color: #00ff88; border: 1px solid #00ff88; padding: 2px;">
+                            <option value="hold">Hold</option>
+                            <option value="false_breakdown">False Breakdown</option>
+                            <option value="breakout" selected>Breakout</option>
+                            <option value="mean_revert">Mean Revert</option>
+                        </select></div>
+                        <div style="color: #ffffff;">DURATION (min): <input type="number" id="custom-duration" value="90" step="1" style="width: 60px; background: #000; color: #0f8; border: 1px solid #042; padding: 2px;"></div>
+                        <div><button id="btn-load-custom" style="background: #00ff88; color: #000; border: none; padding: 4px 15px; cursor: pointer; font-weight: bold; border-radius: 2px;">LOAD</button></div>
+                    </div>
+                    <div id="custom-error" style="color: #ff5555; font-size: 0.85em; display: none;"></div>
                 </div>
                 <div id="sim-params" style="display: flex; gap: 10px; align-items: center; font-size: 0.75em; color: #88ff88; background: rgba(0,40,0,0.5); padding: 5px; border-radius: 3px;">
                     FRAMES: <input type="number" id="param-frames" value="200" style="width: 45px; background: #000; color: #0f8; border: 1px solid #042;">
