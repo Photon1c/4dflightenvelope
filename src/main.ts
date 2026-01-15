@@ -6,7 +6,7 @@ import { FlightEnvelope } from './scene/envelope';
 import { MarketJet } from './scene/jet';
 import { HUD } from './scene/hud';
 import { findNextFlag, findPrevFlag } from './sim/telemetry';
-import { generateSyntheticPath } from './sim/generator';
+import { generateSyntheticPath, generateCustomScenario } from './sim/generator';
 
 class App {
     scene: THREE.Scene;
@@ -20,6 +20,7 @@ class App {
     playbackSpeed = 1;
     isPilotMode = false;
     pilotPos = { x: 0, y: 0, z: 0 };
+    pilotPath: TelemetryFrame[] = [];
 
     envelope?: FlightEnvelope;
     jet: MarketJet;
@@ -156,6 +157,99 @@ class App {
                     this.setFrames(frames);
                 }
             }
+            if (target.id === 'btn-export-pilot') {
+                if (this.pilotPath.length === 0) {
+                    alert('No pilot path recorded. Enable Pilot Mode and move around to record a path.');
+                    return;
+                }
+                
+                const jsonl = this.pilotPath.map(frame => JSON.stringify(frame)).join('\n');
+                const blob = new Blob([jsonl], { type: 'application/jsonl' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `pilot_path_${Date.now()}.jsonl`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+            if (target.id === 'btn-load-custom') {
+                const errorDiv = document.getElementById('custom-error');
+                const spotInput = document.getElementById('custom-spot') as HTMLInputElement;
+                const flipInput = document.getElementById('custom-flip') as HTMLInputElement;
+                const putWallInput = document.getElementById('custom-putwall') as HTMLInputElement;
+                const callWallInput = document.getElementById('custom-callwall') as HTMLInputElement;
+                const ivInput = document.getElementById('custom-iv') as HTMLInputElement;
+                const hvInput = document.getElementById('custom-hv') as HTMLInputElement;
+                const atrInput = document.getElementById('custom-atr') as HTMLInputElement;
+                const frameCountInput = document.getElementById('custom-framecount') as HTMLInputElement;
+                const scenarioTypeSelect = document.getElementById('custom-scenario-type') as HTMLSelectElement;
+                const durationInput = document.getElementById('custom-duration') as HTMLInputElement;
+                
+                if (!spotInput || !flipInput || !putWallInput || !callWallInput || 
+                    !ivInput || !hvInput || !atrInput || !frameCountInput || 
+                    !scenarioTypeSelect || !durationInput || !errorDiv) {
+                    return;
+                }
+                
+                // Validate inputs
+                const spot = parseFloat(spotInput.value);
+                const flip = parseFloat(flipInput.value);
+                const putWall = parseFloat(putWallInput.value);
+                const callWall = parseFloat(callWallInput.value);
+                const iv = parseFloat(ivInput.value);
+                const hv = parseFloat(hvInput.value);
+                const atr = parseFloat(atrInput.value);
+                const frameCount = parseInt(frameCountInput.value);
+                const durationMinutes = parseInt(durationInput.value);
+                const scenarioType = scenarioTypeSelect.value as 'hold' | 'false_breakdown' | 'breakout' | 'mean_revert';
+                
+                // Clamp and validate
+                if (isNaN(hv) || hv <= 0) {
+                    errorDiv.textContent = 'HV must be > 0';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+                if (isNaN(atr) || atr <= 0) {
+                    errorDiv.textContent = 'ATR must be > 0';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+                if (callWall <= putWall) {
+                    errorDiv.textContent = 'Call Wall must be > Put Wall';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+                if (isNaN(frameCount) || frameCount <= 0) {
+                    errorDiv.textContent = 'Frame Count must be > 0';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+                
+                // Hide error if validation passed
+                errorDiv.style.display = 'none';
+                
+                // Generate frames
+                try {
+                    const frames = generateCustomScenario({
+                        spot: isNaN(spot) ? 694 : spot,
+                        flip: isNaN(flip) ? 692.5 : flip,
+                        putWall: isNaN(putWall) ? 680 : putWall,
+                        callWall: isNaN(callWall) ? 700 : callWall,
+                        iv: isNaN(iv) ? 13.69 : iv,
+                        hv: hv,
+                        atr: atr,
+                        frameCount: frameCount,
+                        durationMinutes: isNaN(durationMinutes) ? 90 : durationMinutes,
+                        scenarioType: scenarioType
+                    });
+                    this.setFrames(frames);
+                } catch (err) {
+                    errorDiv.textContent = `Error: ${err instanceof Error ? err.message : 'Unknown error'}`;
+                    errorDiv.style.display = 'block';
+                }
+            }
         });
 
         document.addEventListener('input', (e) => {
@@ -170,12 +264,27 @@ class App {
                 this.playbackSpeed = parseFloat(target.value);
             }
             if (target.id === 'strategy-select') {
-                loadJsonl(`/${target.value}`).then(data => {
-                    if (data.length > 0) this.setFrames(data);
-                });
+                const customPanel = document.getElementById('custom-scenario-params');
+                if (target.value === '__custom__') {
+                    if (customPanel) customPanel.style.display = 'flex';
+                } else {
+                    if (customPanel) customPanel.style.display = 'none';
+                    loadJsonl(`/${target.value}`).then(data => {
+                        if (data.length > 0) this.setFrames(data);
+                    }).catch(() => {
+                        console.warn('Failed to load strategy:', target.value);
+                    });
+                }
             }
             if (target.id === 'pilot-mode') {
                 this.isPilotMode = target.checked;
+                const exportBtn = document.getElementById('btn-export-pilot');
+                if (exportBtn) {
+                    exportBtn.style.display = this.isPilotMode ? 'block' : 'none';
+                }
+                if (!this.isPilotMode) {
+                    this.pilotPath = [];
+                }
             }
         });
 
@@ -273,6 +382,37 @@ class App {
             if (frame) {
                 this.jet.update(frame, this.isPilotMode ? this.pilotPos : undefined);
                 this.hud.update(frame, frameIndex, this.frames.length - 1, this.isPilotMode, this.pilotPos);
+                
+                // Track pilot path in pilot mode
+                if (this.isPilotMode) {
+                    // Determine regime from X coordinate (consistent with generator logic)
+                    let regime: 'TAXI' | 'CRUISE' | 'MANEUVER' | 'RUPTURE' = 'CRUISE';
+                    if (this.pilotPos.x >= 3) regime = 'RUPTURE';
+                    else if (this.pilotPos.x < 0.5) regime = 'TAXI';
+                    else if (this.pilotPos.x >= 1.5) regime = 'MANEUVER';
+                    
+                    // Use frame's iv/hv for pilot path frames (or derive from y if needed)
+                    const pilotFrame: TelemetryFrame = {
+                        timestamp: frame.timestamp,
+                        spot: frame.spot, // Keep original spot for reference
+                        iv: frame.iv,
+                        hv: frame.hv,
+                        x: this.pilotPos.x,
+                        y: this.pilotPos.y,
+                        z: this.pilotPos.z,
+                        regime: regime,
+                        flags: []
+                    };
+                    
+                    // Only add if position changed significantly or it's a new frame
+                    if (this.pilotPath.length === 0 || 
+                        this.pilotPath[this.pilotPath.length - 1].timestamp !== frame.timestamp) {
+                        this.pilotPath.push(pilotFrame);
+                    } else {
+                        // Update last frame if same timestamp
+                        this.pilotPath[this.pilotPath.length - 1] = pilotFrame;
+                    }
+                }
 
                 if (this.isPlaying && !this.isPilotMode) {
                     const offset = new THREE.Vector3(0, 2, 5);
